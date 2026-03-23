@@ -12,7 +12,7 @@ Together, these charts highlight **spatial and temporal patterns** in Boston sho
 ---
 
 ## Data Source
-- [Boston Open Data Portal: Crime Incident Reports (2023–2024)](https://data.boston.gov/dataset)  
+- [Boston Open Data Portal](https://data.boston.gov/dataset)  
 
 ## Tools & Libraries Used
 - **Python / Google Colab** – data collection and preprocessing  
