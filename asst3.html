@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boston Crime Data Story</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    /* Styling to make the layout "Next Level" */
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 40px; }
+    .container { max-width: 1000px; margin: auto; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    h1 { color: #2c3e50; border-bottom: 2px solid #e74c3c; padding-bottom: 10px; margin-top: 0; }
+    p.description { line-height: 1.8; font-size: 1.1em; color: #555; margin-bottom: 30px; }
+    .chart-box { margin-bottom: 30px; background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 15px; }
+    footer { text-align: center; font-size: 14px; color: #555; margin-top: 20px; }
+    a { color: #e67e22; text-decoration: none; font-weight: bold; }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1>Boston Shooting Incidents: Where and When</h1>
+  
+  <p class="description">
+    This interactive data story explores shooting-related incidents in Boston using the Boston Open Data API. 
+    The first chart shows which districts report the most shooting incidents, highlighting areas such as B2, B3, and C11. 
+    The second chart shows the number of shootings at each hour of the day, revealing that incidents peak in the evening and nighttime hours. 
+    Together, these charts provide insights into both the geographic concentration and temporal patterns of shootings in Boston.
+  </p>
+
+  <div class="chart-box">
+    <div id="barChart"></div>
+  </div>
+
+  <div class="chart-box">
+    <div id="lineChart"></div>
+  </div>
+
+  <div class="footer">
+  <hr style="margin-top:50px; border: 0; border-top: 1px solid #eee;">
+  <footer style="text-align:center; font-size:14px; color:#555; margin-top:20px;">
+    <p>
+      <b>Data Integrity Note:</b> All axes are fixed to the city-wide maximum to maintain a consistent scale. "Shooting" status (1) includes both confirmed injuries and ballistics evidence found.
+      <br>
+      Source: <a href="https://data.boston.gov/dataset" target="_blank">Boston Open Data Portal </a> | 
+      Visualizations: <a href="https://plotly.com/javascript/" target="_blank">Plotly.js</a> | 
+      CSS/Design: <a href="https://gemini.google.com" target="_blank">Google Gemini</a> | 
+    </p>
+  </footer>
+  </div>
+</div>
+</div>
+
+<script>
+// Logic and Styling Constants
+const primaryColor = '#e67e22'; // Orange
+const secondaryColor = '#2c3e50'; // Midnight Blue
+
+// -------- BAR CHART (Districts) --------
+Plotly.d3.csv("district.csv", function(data) {
+  // Sorting for high-to-low ranking
+  data.sort((a, b) => b.count - a.count);
+
+  var districts = data.map(d => d.DISTRICT);
+  var counts = data.map(d => +d.count);
+
+  var trace = {
+    x: districts,
+    y: counts,
+    type: 'bar',
+    marker: { 
+      color: primaryColor,
+      line: { width: 1.5, color: '#fff' }
+    }
+  };
+
+  var layout = {
+    title: { text: '<b>Incidents by District</b>', font: { size: 20, color: secondaryColor } },
+    xaxis: { title: "Police District", tickangle: -45 },
+    yaxis: { title: "Number of Incidents", gridcolor: '#f0f0f0' },
+    margin: { t: 60, b: 80, l: 60, r: 20 },
+    plot_bgcolor: "rgba(0,0,0,0)"
+  };
+
+  Plotly.newPlot('barChart', [trace], layout, {responsive: true});
+});
+
+// -------- LINE CHART (Hours) --------
+Plotly.d3.csv("hour.csv", function(data) {
+  var hours = data.map(d => +d.HOUR);
+  var counts = data.map(d => +d.count);
+
+  var trace = {
+    x: hours,
+    y: counts,
+    type: 'scatter',
+    mode: 'lines+markers',
+    // Smoother line (spline) and filled area for visual emphasis
+    line: { shape: 'spline', color: secondaryColor, width: 4 },
+    fill: 'tozeroy',
+    fillcolor: 'rgba(44, 62, 80, 0.05)',
+    marker: { size: 10, color: primaryColor, line: {width: 2, color: '#fff'} }
+  };
+
+  var layout = {
+    title: { text: '<b>Incidents by Hour</b>', font: { size: 20, color: secondaryColor } },
+    xaxis: { 
+      title: "Hour of Day", 
+      tickvals: [0, 4, 8, 12, 16, 20, 23],
+      ticktext: ['12am', '4am', '8am', '12pm', '4pm', '8pm', '11pm'],
+      gridcolor: '#f0f0f0'
+    },
+    yaxis: { title: "Number of Incidents", gridcolor: '#f0f0f0' },
+    margin: { t: 60, b: 60, l: 60, r: 20 },
+    plot_bgcolor: "rgba(0,0,0,0)"
+  };
+
+  Plotly.newPlot('lineChart', [trace], layout, {responsive: true});
+});
+</script>
+
+</body>
+</html>

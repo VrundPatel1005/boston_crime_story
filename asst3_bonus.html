@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Boston Crime Data Story (Interactive)</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    /* Synced with your main theme */
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 40px; }
+    .container { max-width: 1000px; margin: auto; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    h1 { color: #2c3e50; border-bottom: 2px solid #e74c3c; padding-bottom: 10px; margin-top: 0; }
+    .instruction { background: #fff5eb; padding: 15px; border-left: 5px solid #e67e22; margin-bottom: 30px; border-radius: 4px; color: #856404; }
+    .chart-box { margin-bottom: 30px; background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 15px; }
+    footer { text-align: center; font-size: 14px; color: #555; margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
+    a { color: #e67e22; text-decoration: none; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Interactive Boston Shooting Analysis</h1>
+  
+  <div class="instruction">
+    <strong>Interactive Step:</strong> Click any bar in the <b>District Chart</b> below. The <b>Hourly Trend</b> will automatically update to reflect the specific pattern of that district.
+  </div>
+
+  <div class="chart-box">
+    <div id="barChart"></div>
+  </div>
+
+  <div class="chart-box">
+    <div id="lineChart"></div>
+  <div class="footer">
+  <hr style="margin-top:50px; border: 0; border-top: 1px solid #eee;">
+  <footer style="text-align:center; font-size:14px; color:#555; margin-top:20px;">
+    <p>
+      <b>Data Integrity Note:</b> All axes are fixed to the city-wide maximum to maintain a consistent scale. "Shooting" status (1) includes both confirmed injuries and ballistics evidence found.
+      <br>
+      Source: <a href="https://data.boston.gov/dataset" target="_blank">Boston Open Data Portal </a> | 
+      Visualizations: <a href="https://plotly.com/javascript/" target="_blank">Plotly.js</a> | 
+      CSS/Design: <a href="https://gemini.google.com" target="_blank">Google Gemini</a> | 
+    </p>
+  </footer>
+  </div>
+
+<script>
+const primaryColor = '#e67e22'; // Orange
+const secondaryColor = '#2c3e50'; // Midnight Blue
+
+var globalMaxHour = 0;
+var districtHourMap = {};
+
+// 1. Load Detailed District-Hour Data first
+Plotly.d3.csv("district_hour.csv", function(data) {
+  data.forEach(d => {
+    const count = +d.count;
+    if (count > globalMaxHour) globalMaxHour = count; 
+
+    if (!districtHourMap[d.DISTRICT]) {
+      districtHourMap[d.DISTRICT] = { hours: [], counts: [] };
+    }
+    districtHourMap[d.DISTRICT].hours.push(+d.HOUR);
+    districtHourMap[d.DISTRICT].counts.push(count);
+  });
+  
+  // Initialize the line chart with a placeholder state
+  var emptyLayout = {
+    title: { text: '<i>Select a District to See Temporal Pattern</i>', font: { color: '#7f8c8d' } },
+    xaxis: { title: "Hour (0-23)", range: [0, 23] },
+    yaxis: { title: "Incidents", range: [0, globalMaxHour + 2] }
+  };
+  Plotly.newPlot('lineChart', [], emptyLayout, {responsive: true});
+});
+
+// 2. Load District Totals and Build the Controller
+Plotly.d3.csv("district.csv", function(data) {
+  data.sort((a, b) => b.count - a.count);
+
+  var districts = data.map(d => d.DISTRICT);
+  var counts = data.map(d => +d.count);
+
+  var barTrace = {
+    x: districts,
+    y: counts,
+    type: 'bar',
+    marker: { color: primaryColor }
+  };
+
+  var barLayout = {
+    title: { text: '<b>Total Incidents by District</b>', font: { size: 20, color: secondaryColor } },
+    xaxis: { title: "Police District" },
+    yaxis: { title: "Total Count", rangemode: 'tozero' },
+    margin: { t: 60, b: 60, l: 60, r: 20 },
+    plot_bgcolor: "rgba(0,0,0,0)"
+  };
+
+  Plotly.newPlot('barChart', [barTrace], barLayout, {responsive: true});
+
+  // --- INTERACTIVITY LOGIC ---
+  document.getElementById('barChart').on('plotly_click', function(eventData){
+    // Capture the clicked district ID
+    var clickedDistrict = eventData.points[0].x;
+    var districtData = districtHourMap[clickedDistrict];
+
+    if (districtData) {
+      var lineTrace = {
+        x: districtData.hours,
+        y: districtData.counts,
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { shape: 'spline', color: secondaryColor, width: 4 },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(44, 62, 80, 0.05)',
+        marker: { size: 10, color: primaryColor, line: {width: 2, color: '#fff'} }
+      };
+
+      var lineLayout = {
+        title: { text: '<b>Hourly Trend: District ' + clickedDistrict + '</b>', font: { size: 20, color: secondaryColor } },
+        xaxis: { 
+            title: "Hour of Day", 
+            tickvals: [0, 4, 8, 12, 16, 20, 23],
+            ticktext: ['12am', '4am', '8am', '12pm', '4pm', '8pm', '11pm']
+        },
+        // Keep Y-axis range consistent for honest comparison (Tufte principle)
+        yaxis: { title: "Number of Incidents", range: [0, globalMaxHour + 2] },
+        transition: { duration: 400, easing: 'cubic-in-out' }
+      };
+
+      Plotly.react('lineChart', [lineTrace], lineLayout);
+    }
+  });
+});
+</script>
+
+</body>
+</html>
